@@ -554,27 +554,33 @@
 
   // ---------- Event binding ----------
   function bindViewEvents() {
-    // Quick actions & generic data-action
-    $$('[data-action]').forEach(el => {
-      el.addEventListener('click', handleAction);
-    });
-    // Packing checkboxes
-    $$('input[data-action="toggle-pack"]').forEach(cb => {
-      cb.addEventListener('change', (e) => {
-        const listId = e.target.dataset.list;
-        const catName = e.target.dataset.cat;
-        const idx = Number(e.target.dataset.idx);
-        const list = state.packingLists.find(l => l.id === listId);
-        if (!list) return;
-        const cat = list.items.find(c => c.cat === catName);
-        if (cat && cat.items[idx]) {
-          cat.items[idx].checked = e.target.checked;
-          save(state);
-          render();
-        }
-      });
-    });
+    // Events use document-level delegation (see below) so modal buttons work on iPhone
   }
+
+  // Delegated click handler — works for buttons created later inside modals
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    if (btn.matches('input[type="checkbox"]')) return;
+    handleAction({ currentTarget: btn, target: e.target });
+  });
+
+  // Packing list checkboxes
+  document.addEventListener('change', (e) => {
+    const el = e.target;
+    if (!el.matches || !el.matches('input[data-action="toggle-pack"]')) return;
+    const listId = el.dataset.list;
+    const catName = el.dataset.cat;
+    const idx = Number(el.dataset.idx);
+    const list = state.packingLists.find(l => l.id === listId);
+    if (!list) return;
+    const cat = list.items.find(c => c.cat === catName);
+    if (cat && cat.items[idx]) {
+      cat.items[idx].checked = el.checked;
+      save(state);
+      render();
+    }
+  });
 
   function handleAction(e) {
     const btn = e.currentTarget;
